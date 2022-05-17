@@ -41,6 +41,7 @@ import tornado.ioloop     # noqa E402: gotta install ioloop first
 import tornado.web        # noqa E402: gotta install ioloop first
 import tornado.websocket  # noqa E402: gotta install ioloop first
 import tornado.escape     # noqa E402: gotta install ioloop first
+import visdom
 
 LAYOUT_FILE = 'layouts.json'
 DEFAULT_ENV_PATH = '%s/.visdom/' % expanduser("~")
@@ -1807,7 +1808,7 @@ class ErrorHandler(BaseHandler):
 
 # function that downloads and installs javascript, css, and font dependencies:
 def download_scripts(proxies=None, install_dir=None):
-    import visdom
+    
     print("Checking for scripts.")
 
     # location in which to download stuff:
@@ -1980,8 +1981,8 @@ def start_server(port=DEFAULT_PORT, hostname=DEFAULT_HOSTNAME,
     app.subs = []
     app.sources = []
 
-
-def main(print_func=None):
+def get_FLAGS():
+    
     parser = argparse.ArgumentParser(description='Start the visdom server.')
     parser.add_argument('-port', metavar='port', type=int,
                         default=DEFAULT_PORT,
@@ -2018,7 +2019,17 @@ def main(print_func=None):
     parser.add_argument('-eager_data_loading', default=False,
                         action='store_true',
                         help='Load data from filesystem when starting server (and not lazily upon first request).')
+    
+    parser.add_argument('--scripts_dir', default=os.path.dirname(visdom.__file__), metavar='scripts_dir', type=str,
+                        help='Where to install JS, CSS, Fonts etc.')
+
     FLAGS = parser.parse_args()
+
+    return FLAGS
+
+def main(print_func=None, _FLAGS=None):
+
+    FLAGS = _FLAGS
 
     # Process base_url
     base_url = FLAGS.base_url if FLAGS.base_url != DEFAULT_BASE_URL else ""
@@ -2098,8 +2109,9 @@ def main(print_func=None):
                  eager_data_loading=FLAGS.eager_data_loading)
 
 def download_scripts_and_run():
-    download_scripts()
-    main()
+    FLAGS = get_FLAGS()
+    download_scripts(install_dir=FLAGS.scripts_dir)
+    main(_FLAGS=FLAGS)
 
 
 if __name__ == "__main__":
